@@ -1,26 +1,13 @@
-import sys
 import os
 import shlex
 import subprocess
 import tkinter as tk
-from time import sleep
 from tkinter import filedialog as fd, ttk, Label, Button, scrolledtext
+import threading
 
 
 source = "/home/virgiawan/Video/"
 hasil = "/home/virgiawan/Videos/TUMBAL\ PROYEK/"
-
-
-class Redirect(object):
-    def __init__(self, textbox):
-        self.textbox = textbox
-
-    def write(self, message):
-        self.textbox.insert(tk.END, message)
-        self.textbox.see(tk.END)
-
-    def flush(self):
-        pass
 
 
 class App(tk.Tk):
@@ -28,8 +15,7 @@ class App(tk.Tk):
         super().__init__()
 
         self.title("Video Compressor")
-        self.minsize(width=365, height=350)
-        self.maxsize(width=365, height=350)
+        self.geometry('365x350')
         self.config(background="white")
 
         # button_explore
@@ -56,7 +42,7 @@ class App(tk.Tk):
             length=350,
         )
 
-        self.textbox = scrolledtext.ScrolledText(self, width=48, height=8, border=1)
+        self.textbox = scrolledtext.ScrolledText(self, bg='black', fg='green', width=48, height=8)
 
         self.file_label = Label(
             self,
@@ -90,20 +76,34 @@ class App(tk.Tk):
         self.file_label.configure(text="File Dipilih: \n " + basename)
 
     def kompresFile(self):
-        pass1 = f"ffmpeg -y -i {video} -c:v libx264 -b:v 8k -c:a aac -b:a 8k -refs 5 -pass 1 -f null /dev/null"
-        subprocess.run(shlex.split(pass1), stdout=sub.stdout, stderr=sys.stderr)
+        pass1 = f"ffmpeg -y -i {video} -c:v libx264 -b:v 8k -c:a aac -b:a 8k -refs 5 -t 10 -pass 1 -f null /dev/null"
 
-        sleep(3)
+        thread1 = threading.Thread(target=self.tmp_proc, args=(pass1,))
+        thread1.start()
+
+    def tmp_proc(self, command):
+        process = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+        while True:
+            line = process.stdout.readline().decode()
+            if not line:
+                break
+
+            # Update the textbox in the main thread
+            self.textbox.after(0, self.textbox.insert, tk.END, line)
+            self.textbox.after(0, self.textbox.see, tk.END)
+
+        process.wait()
+
+        # Update the progress bar
+        # self.progress_bar.after(0, self.progress_bar.step, 50)
 
         pass2 = f"ffmpeg -y -i {video} -c:v libx264 -b:v 8k -c:a aac -b:a 8k -refs 5 -pass 2 {merger}"
-        subprocess.run(shlex.split(pass2), stdout=sys.stdout, stderr=sys.stderr)
+        thread2 = threading.Thread(target=self.tmp_proc, args=(pass2,))
+        thread2.start()
 
 
 if __name__ == "__main__":
     root = App()
-
-    # Mengganti sys.stdout dan sys.stderr dengan StdoutRedirector
-    sys.stdout = Redirect(root.textbox)
-    sys.stderr = Redirect(root.textbox)
-
+    root.resizable(True, True)
     root.mainloop()

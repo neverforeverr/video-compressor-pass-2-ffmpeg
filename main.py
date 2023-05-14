@@ -15,7 +15,9 @@ class App(tk.Tk):
         super().__init__()
 
         self.title("Video Compressor")
-        self.geometry('365x350')
+        self.geometry("365x350")
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=2)
         self.config(background="white")
 
         # button_explore
@@ -42,7 +44,9 @@ class App(tk.Tk):
             length=350,
         )
 
-        self.textbox = scrolledtext.ScrolledText(self, bg='black', fg='green', width=48, height=8)
+        self.textbox = scrolledtext.ScrolledText(
+            self, bg="black", fg="green", width=48, height=8
+        )
 
         self.file_label = Label(
             self,
@@ -53,11 +57,11 @@ class App(tk.Tk):
             relief="solid",
         )
 
-        self.compress_button.place(x=275, y=100)
-        self.explore_button.place(x=5, y=100)
-        self.progress_bar.place(x=5, y=300)
-        self.file_label.place(x=5, y=5)
-        self.textbox.place(x=5, y=150)
+        self.compress_button.grid(column=0, row=1, padx=5, pady=5, sticky="W")
+        self.explore_button.grid(column=0, row=1, padx=5, pady=5, sticky="E")
+        self.progress_bar.grid(column=0, row=5, padx=5, pady=5, sticky="NSEW")
+        self.file_label.grid(column=0, row=0, padx=5, pady=5, sticky="NSEW")
+        self.textbox.grid(column=0, row=4, padx=5, pady=5, sticky="NSEW")
 
     def exploreFile(self):
         global merger, video
@@ -76,13 +80,15 @@ class App(tk.Tk):
         self.file_label.configure(text="File Dipilih: \n " + basename)
 
     def kompresFile(self):
-        pass1 = f"ffmpeg -y -i {video} -c:v libx264 -b:v 8k -c:a aac -b:a 8k -refs 5 -t 10 -pass 1 -f null /dev/null"
+        pass1 = f"ffmpeg -y -i {video} -c:v libx264 -b:v 8k -c:a aac -b:a 8k -refs 5 -t 00:00:10 -pass 1 -f null /dev/null"
 
         thread1 = threading.Thread(target=self.tmp_proc, args=(pass1,))
         thread1.start()
 
     def tmp_proc(self, command):
-        process = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(
+            shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        )
 
         while True:
             line = process.stdout.readline().decode()
@@ -98,7 +104,7 @@ class App(tk.Tk):
         # Update the progress bar
         # self.progress_bar.after(0, self.progress_bar.step, 50)
 
-        pass2 = f"ffmpeg -y -i {video} -c:v libx264 -b:v 8k -c:a aac -b:a 8k -refs 5 -pass 2 {merger}"
+        pass2 = f"ffmpeg -y -i {video} -c:v libx264 -b:v 8k -c:a aac -b:a 8k -refs 5 -t 00:00:10 -pass 2 {merger}"
         thread2 = threading.Thread(target=self.tmp_proc, args=(pass2,))
         thread2.start()
 
